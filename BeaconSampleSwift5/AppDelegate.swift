@@ -7,15 +7,30 @@
 //
 
 import UIKit
+import CoreLocation
+import UserNotifications
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
 
+    let uuid = UUID(uuidString: "00000000-710d-1001-b000-001c4d98e35e")!
+    let locationManager = CLLocationManager()
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
+        
+        locationManager.requestAlwaysAuthorization()
+        requestNotificationAuthorization()
+        
+        let region = CLBeaconRegion(proximityUUID: uuid, identifier: "identifier")
+        region.notifyOnEntry = true
+        region.notifyOnExit = true
+        region.notifyEntryStateOnDisplay = false
+        
+        locationManager.delegate = self
+        locationManager.startMonitoring(for: region)
         return true
     }
 
@@ -41,6 +56,38 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
     }
 
+    private func debugNotification(title: String, body: String) {
+        //　通知設定に必要なクラスをインスタンス化
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
+        let content = UNMutableNotificationContent()
+        
+        // 通知内容の設定
+        content.title = title
+        content.body = body
+        content.sound = UNNotificationSound.default
+        
+        // 通知スタイルを指定
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
+        // 通知をセット
+        UNUserNotificationCenter.current().add(request, withCompletionHandler: nil)
+    }
+    
+    private func requestNotificationAuthorization() {
+        let center = UNUserNotificationCenter.current()
+        center.requestAuthorization(options: [.badge, .sound, .alert], completionHandler: { (granted, error) in
+        })
+    }
 
 }
 
+extension AppDelegate: CLLocationManagerDelegate {
+    func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
+        debugNotification(title: "didEnterRegion", body: "")
+        print("didEnterRegion")
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didExitRegion region: CLRegion) {
+        debugNotification(title: "didExitRegion", body: "")
+        print("didExitRegion")
+    }
+}
